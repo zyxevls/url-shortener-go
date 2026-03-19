@@ -9,5 +9,5 @@ type URL struct {
 	CustomAlias string
 	ClickCount  int
 	ExpiresAt   *time.Time
-	CratedAt    time.Time
+	CreatedAt   time.Time
 }
