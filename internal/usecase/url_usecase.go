@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"errors"
 	"time"
 
 	"github.com/zyxevls/internal/domain"
@@ -75,6 +76,10 @@ func (u *URLUseCase) GetOriginalURL(code string) (string, error) {
 	url, err := u.repo.FindByCode(code)
 	if err != nil {
 		return "", err
+	}
+
+	if url.ExpiresAt != nil && time.Now().After(*url.ExpiresAt) {
+		return "", errors.New("Link expired")
 	}
 
 	//simpan ke redis

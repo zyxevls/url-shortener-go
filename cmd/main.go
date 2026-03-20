@@ -22,11 +22,12 @@ func main() {
 
 	repo := postgres.NewURLRepository(db)
 	cache := redisrepo.NewURLCache(rdb)
+	rateLimiter := handler.RateLimitMiddleware(cache)
 
 	usecase := usecase.NewUrlUseCase(repo, cache)
 	h := handler.NewHandler(usecase)
 
-	http.HandleFunc("/api/v1/shorten", h.CreateShortURL)
+	http.HandleFunc("/api/v1/shorten", rateLimiter(h.CreateShortURL))
 	http.HandleFunc("/", h.Redirect)
 
 	log.Println("Server is running on port :8080")

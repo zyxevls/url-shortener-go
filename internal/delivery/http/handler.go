@@ -44,6 +44,10 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 	original, err := h.usecase.GetOriginalURL(code)
 	if err != nil {
+		if err.Error() == "Link expired" {
+			http.Error(w, "Link expired", http.StatusGone)
+			return
+		}
 		http.NotFound(w, r)
 		return
 	}

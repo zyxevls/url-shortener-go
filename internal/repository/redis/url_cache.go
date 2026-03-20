@@ -19,6 +19,25 @@ func NewURLCache(r *redis.Client) *URLCache {
 	}
 }
 
+func (c *URLCache) RateLimit(ip string, limit int, window time.Duration) (bool, error) {
+	key := "rate:" + ip
+
+	count, err := c.client.Incr(c.ctx, key).Result()
+	if err != nil {
+		return false, err
+	}
+
+	if count == 1 {
+		c.client.Expire(c.ctx, key, window)
+	}
+
+	if int(count) > limit {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (c *URLCache) Set(code string, original string, ttl time.Duration) error {
 	return c.client.Set(c.ctx, "short:"+code, original, ttl).Err()
 }
