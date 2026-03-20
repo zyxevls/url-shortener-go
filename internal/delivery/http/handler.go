@@ -48,5 +48,7 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go h.usecase.IncrementClick(code)
+
 	http.Redirect(w, r, original, http.StatusFound)
 }

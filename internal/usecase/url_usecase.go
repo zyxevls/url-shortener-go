@@ -56,3 +56,7 @@ func (u *URLUseCase) GetOriginalURL(code string) (string, error) {
 
 	return url.OriginalURL, nil
 }
+
+func (u *URLUseCase) IncrementClick(code string) {
+	_ = u.repo.IncrementClick(code)
+}

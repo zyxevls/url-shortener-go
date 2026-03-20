@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/joho/godotenv"
+	"github.com/zyxevls/internal/config"
 	handler "github.com/zyxevls/internal/delivery/http"
 	"github.com/zyxevls/internal/repository/postgres"
 	"github.com/zyxevls/internal/usecase"
@@ -12,12 +13,14 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
+		log.Println(".env file not found, using system environment variables")
 	}
 
-	repo := postgres.NewURLRepository()
-	useCase := usecase.NewUrlUseCase(repo)
-	h := handler.NewHandler(useCase)
+	db := config.NewPostgresDB()
+
+	repo := postgres.NewURLRepository(db)
+	usecase := usecase.NewUrlUseCase(repo)
+	h := handler.NewHandler(usecase)
 
 	http.HandleFunc("/api/v1/shorten", h.CreateShortURL)
 	http.HandleFunc("/", h.Redirect)
