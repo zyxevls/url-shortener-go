@@ -13,12 +13,19 @@ type URLRepository interface {
 	IncrementClick(code string) error
 }
 
-type URLUseCase struct {
-	repo URLRepository
+type CacheRepository interface {
+	Set(code string, original string, ttl time.Duration) error
+	Get(code string) (string, error)
+	IncrementClick(code string)
 }
 
-func NewUrlUseCase(r URLRepository) *URLUseCase {
-	return &URLUseCase{repo: r}
+type URLUseCase struct {
+	repo  URLRepository
+	cache CacheRepository
+}
+
+func NewUrlUseCase(r URLRepository, c CacheRepository) *URLUseCase {
+	return &URLUseCase{repo: r, cache: c}
 }
 
 func (u *URLUseCase) CreateShortURL(original string, alias string, expire *time.Time) (*domain.URL, error) {
@@ -45,18 +52,46 @@ func (u *URLUseCase) CreateShortURL(original string, alias string, expire *time.
 		return nil, err
 	}
 
+	//cache
+	ttl := time.Hour * 24
+	if expiresAt != nil {
+		ttl = time.Until(*expire)
+	}
+
+	_ = u.cache.Set(code, original, ttl)
+
 	return url, nil
 }
 
 func (u *URLUseCase) GetOriginalURL(code string) (string, error) {
+	//cek redis
+	cached, err := u.cache.Get(code)
+	if err == nil {
+		go u.cache.IncrementClick(code)
+		return cached, nil
+	}
+
+	//cek db
 	url, err := u.repo.FindByCode(code)
 	if err != nil {
 		return "", err
 	}
 
+	//simpan ke redis
+	ttl := time.Hour * 24
+	if url.ExpiresAt != nil {
+		ttl = time.Until(*url.ExpiresAt)
+	}
+
+	_ = u.cache.Set(code, url.OriginalURL, ttl)
+
+	go u.repo.IncrementClick(code)
+
 	return url.OriginalURL, nil
+
 }
 
 func (u *URLUseCase) IncrementClick(code string) {
 	_ = u.repo.IncrementClick(code)
+	u.cache.IncrementClick(code)
 }

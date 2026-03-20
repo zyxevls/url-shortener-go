@@ -8,6 +8,7 @@ import (
 	"github.com/zyxevls/internal/config"
 	handler "github.com/zyxevls/internal/delivery/http"
 	"github.com/zyxevls/internal/repository/postgres"
+	redisrepo "github.com/zyxevls/internal/repository/redis"
 	"github.com/zyxevls/internal/usecase"
 )
 
@@ -17,9 +18,12 @@ func main() {
 	}
 
 	db := config.NewPostgresDB()
+	rdb := config.NewRedisClient()
 
 	repo := postgres.NewURLRepository(db)
-	usecase := usecase.NewUrlUseCase(repo)
+	cache := redisrepo.NewURLCache(rdb)
+
+	usecase := usecase.NewUrlUseCase(repo, cache)
 	h := handler.NewHandler(usecase)
 
 	http.HandleFunc("/api/v1/shorten", h.CreateShortURL)
